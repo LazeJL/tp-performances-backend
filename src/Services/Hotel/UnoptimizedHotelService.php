@@ -128,8 +128,62 @@ class UnoptimizedHotelService extends AbstractHotelService {
   protected function getCheapestRoom ( HotelEntity $hotel, array $args = [] ) : RoomEntity {
     $timer = Timers::getInstance();
     $timerId = $timer->startTimer('TimerGetCheapestRoom');
+
+    $argsQuery = [];
+
+    $sqlQuery = "SELECT POST.ID AS id, 
+    surfaceData.meta_value AS surface, 
+    priceData.meta_value AS price, 
+    roomsData.meta_value AS rooms, 
+    bathData.meta_value AS bath, 
+    typeData.meta_value AS types 
+    FROM wp_posts AS POST";
+
+    $sqlQuery = "INNER JOIN tp.wp_postMeta AS surfaceData ON POST_ID = postMeta.post_id AND surfaceData.meta_key = 'surface'";
+    if(isset($args['surface']['min']) || $args['surface']['max']){
+      if(isset($args['surface']['min'])){
+        $sqlQuery = " AND surfaceData.meta_calue >= :minsurface";
+        $argsQuery[] = ['minsurface',$args['surface']['min']];
+      }
+      if(isset($args['surface']['max'])){
+        $sqlQuery = " AND surfaceData.meta_calue >= :maxsurface";
+        $argsQuery[] = ['maxsurface',$args['surface']['max']];
+      }
+    }
+    $sqlQuery = "INNER JOIN tp.wp_postMeta AS priceData ON POST_ID = postMeta.post_id AND priceData.meta_key = 'price'";
+    if(isset($args['price']['min']) || $args['price']['max']){
+      if(isset($args['price']['min'])){
+        $sqlQuery = " AND priceData.meta_calue >= :minprice";
+        $argsQuery[] = ['minprice',$args['price']['min']];
+      }
+      if(isset($args['price']['max'])){
+        $sqlQuery = " AND priceData.meta_calue >= :maxprice";
+        $argsQuery[] = ['maxprice',$args['price']['max']];
+      }
+    }
+    $sqlQuery = "INNER JOIN tp.wp_postMeta AS roomsData ON POST.ID = roomsData.post_id AND roomsData.meta_key = 'bedrooms_count'";
+    if(isset($args['rooms'])){
+      $sqlQuery = " AND roomsData.meta_calue >= :bedrooms";
+      $argsQuery[] = ['bedrooms',$args['rooms']];
+    }
+    $sqlQuery = "INNER JOIN tp.wp_postMeta AS bathData ON POST.ID = bathData.post_id AND bathData.meta_key = 'bathrooms_count'";
+    if(isset($args['bathrooms'])){
+      $sqlQuery = " AND bathData.meta_calue >= :bathrooms";
+      $argsQuery[] = ['bathrooms',$args['bathrooms']];
+    }
+    $sqlQuery = "INNER JOIN tp.wp_postMeta AS typeData ON POST.ID = typeData.post_id AND typeData.meta_key = 'type'";
+    if(isset($args['types'])){
+      $sqlQuery = " AND typeData.meta_calue >= :types";
+      $argsQuery[] = ['types',$args['types']];
+    }
+
+    $sqlQuery = "WHERE post_author = :hotelId AND post_type = 'room'";
+
     // On charge toutes les chambres de l'hôtel
-    $stmt = $this->getDB()->prepare( "SELECT * FROM wp_posts WHERE post_author = :hotelId AND post_type = 'room'" );
+    $stmt = $this->getDB()->prepare($sqlQuery);
+    foreach($argsQuery as $args){
+      $stmt->bindParam($args[0],$args[1]);
+    }
     $stmt->execute( [ 'hotelId' => $hotel->getId() ] );
     
     /**
@@ -148,7 +202,8 @@ class UnoptimizedHotelService extends AbstractHotelService {
       if ( isset( $args['surface']['min'] ) && $room->getSurface() < $args['surface']['min'] )
         continue;
       
-      if ( isset( $args['surface']['max'] ) && $room->getSurface() > $args['surface']['max'] )
+      if ( isset( $ar 
+      ['surface']['max'] ) && $room->getSurface() > $args['surface']['max'] )
         continue;
       
       if ( isset( $args['price']['min'] ) && intval( $room->getPrice() ) < $args['price']['min'] )
