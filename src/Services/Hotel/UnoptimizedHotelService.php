@@ -56,7 +56,6 @@ class UnoptimizedHotelService extends AbstractHotelService {
       if ( $row['user_id'] === $userId && $row['meta_key'] === $key )
         $output = $row['meta_value'];
     }
-    
     return $output;
   }
   
