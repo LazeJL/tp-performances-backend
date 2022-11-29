@@ -4,6 +4,7 @@ namespace App\Services\Hotel;
 
 use App\Common\FilterException;
 use App\Common\SingletonTrait;
+use App\Common\PDOSingleton;
 use App\Entities\HotelEntity;
 use App\Entities\RoomEntity;
 use App\Services\Room\RoomService;
@@ -17,12 +18,10 @@ use PDO;
 class UnoptimizedHotelService extends AbstractHotelService {
   
   use SingletonTrait;
-  
-  
+    
   protected function __construct () {
     parent::__construct( new RoomService() );
   }
-  
   
   /**
    * Récupère une nouvelle instance de connexion à la base de donnée
@@ -31,10 +30,12 @@ class UnoptimizedHotelService extends AbstractHotelService {
    * @noinspection PhpUnnecessaryLocalVariableInspection
    */
   protected function getDB () : PDO {
-    $pdo = new PDO( "mysql:host=db;dbname=tp;charset=utf8mb4", "root", "root" );
-    return $pdo;
+    $timer = Timers::getInstance();
+    $timerId = $timer->startTimer('TimerGetBD');
+    $PDO = PDOSingleton::get();
+    $timer->endTimer('TimerGetBD', $timerId);
+    return $PDO;
   }
-  
   
   /**
    * Récupère une méta-donnée de l'instance donnée
@@ -70,7 +71,7 @@ class UnoptimizedHotelService extends AbstractHotelService {
    */
   protected function getMetas ( HotelEntity $hotel ) : array {
     $timer = Timers::getInstance();
-    $timerId = $timer->startTimer('TimerGetMeta');
+    $timerId = $timer->startTimer('TimerGetMetas');
     $metaDatas = [
       'address' => [
         'address_1' => $this->getMeta( $hotel->getId(), 'address_1' ),
@@ -84,7 +85,7 @@ class UnoptimizedHotelService extends AbstractHotelService {
       'coverImage' =>  $this->getMeta( $hotel->getId(), 'coverImage' ),
       'phone' =>  $this->getMeta( $hotel->getId(), 'phone' ),
     ];
-    $timer->endTimer('TimerGetMeta', $timerId);
+    $timer->endTimer('TimerGetMetas', $timerId);
     return $metaDatas;
   }
   
