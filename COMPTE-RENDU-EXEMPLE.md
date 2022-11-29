@@ -27,7 +27,7 @@ Vous pouvez utiliser ce [GSheets](https://docs.google.com/spreadsheets/d/13Hw27U
 
 **Temps de chargement globaux** 
 
-- **Avant** TEMPS
+- **Avant** 29.1
 
 - **Après** TEMPS
 
