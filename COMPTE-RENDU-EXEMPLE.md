@@ -27,9 +27,9 @@ Vous pouvez utiliser ce [GSheets](https://docs.google.com/spreadsheets/d/13Hw27U
 
 **Temps de chargement globaux** 
 
-- **Avant** 29.1
+- **Avant** 29.1 sec
 
-- **Après** TEMPS
+- **Après** 24.4 sec
 
 
 #### Amélioration de la méthode `METHOD` et donc de la méthode `METHOD` :

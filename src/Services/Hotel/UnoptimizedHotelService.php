@@ -129,61 +129,29 @@ class UnoptimizedHotelService extends AbstractHotelService {
     $timer = Timers::getInstance();
     $timerId = $timer->startTimer('TimerGetCheapestRoom');
 
-    $argsQuery = [];
+    $whereClause = [];
+    if ( isset( $args['surface']['min'] )  )
+      $whereClause[] = 'surfaceData.meta_value >= ' . $args['surface']['min'];
+    if ( isset( $args['surface']['max'] )  )
+      $whereClause[] = 'surfaceData.meta_value <= ' . $args['surface']['max'];
+    if ( isset( $args['price']['min'] ) )
+      $whereClause[] = 'priceData.meta_value >= ' . $args['price']['min'];
+    if ( isset( $args['price']['max'] ) )
+      $whereClause[] = 'priceData.meta_value <= ' . $args['price']['max'];
+    if ( isset( $args['rooms'] )  )
+      $whereClause[] = 'roomsData.meta_value  >= ' . $args['rooms'];
+    if ( isset( $args['bathRooms'] ) )
+      $whereClause[] = 'bathRoomsData.meta_value >= ' . $args['bathRooms'];
+    if ( isset( $args['types'] ) && ! empty( $args['types'] )  )
+      $whereClause[] = 'typeData.meta_value IN ("' . implode( '","', $args['types'] ) . '")';
 
-    $sqlQuery = "SELECT POST.ID AS id, 
-    surfaceData.meta_value AS surface, 
-    priceData.meta_value AS price, 
-    roomsData.meta_value AS rooms, 
-    bathData.meta_value AS bath, 
-    typeData.meta_value AS types 
-    FROM wp_posts AS POST";
-
-    $sqlQuery = "INNER JOIN tp.wp_postMeta AS surfaceData ON POST_ID = postMeta.post_id AND surfaceData.meta_key = 'surface'";
-    if(isset($args['surface']['min']) || $args['surface']['max']){
-      if(isset($args['surface']['min'])){
-        $sqlQuery = " AND surfaceData.meta_calue >= :minsurface";
-        $argsQuery[] = ['minsurface',$args['surface']['min']];
-      }
-      if(isset($args['surface']['max'])){
-        $sqlQuery = " AND surfaceData.meta_calue >= :maxsurface";
-        $argsQuery[] = ['maxsurface',$args['surface']['max']];
-      }
-    }
-    $sqlQuery = "INNER JOIN tp.wp_postMeta AS priceData ON POST_ID = postMeta.post_id AND priceData.meta_key = 'price'";
-    if(isset($args['price']['min']) || $args['price']['max']){
-      if(isset($args['price']['min'])){
-        $sqlQuery = " AND priceData.meta_calue >= :minprice";
-        $argsQuery[] = ['minprice',$args['price']['min']];
-      }
-      if(isset($args['price']['max'])){
-        $sqlQuery = " AND priceData.meta_calue >= :maxprice";
-        $argsQuery[] = ['maxprice',$args['price']['max']];
-      }
-    }
-    $sqlQuery = "INNER JOIN tp.wp_postMeta AS roomsData ON POST.ID = roomsData.post_id AND roomsData.meta_key = 'bedrooms_count'";
-    if(isset($args['rooms'])){
-      $sqlQuery = " AND roomsData.meta_calue >= :bedrooms";
-      $argsQuery[] = ['bedrooms',$args['rooms']];
-    }
-    $sqlQuery = "INNER JOIN tp.wp_postMeta AS bathData ON POST.ID = bathData.post_id AND bathData.meta_key = 'bathrooms_count'";
-    if(isset($args['bathrooms'])){
-      $sqlQuery = " AND bathData.meta_calue >= :bathrooms";
-      $argsQuery[] = ['bathrooms',$args['bathrooms']];
-    }
-    $sqlQuery = "INNER JOIN tp.wp_postMeta AS typeData ON POST.ID = typeData.post_id AND typeData.meta_key = 'type'";
-    if(isset($args['types'])){
-      $sqlQuery = " AND typeData.meta_calue >= :types";
-      $argsQuery[] = ['types',$args['types']];
-    }
-
-    $sqlQuery = "WHERE post_author = :hotelId AND post_type = 'room'";
-
-    // On charge toutes les chambres de l'hôtel
-    $stmt = $this->getDB()->prepare($sqlQuery);
-    foreach($argsQuery as $args){
-      $stmt->bindParam($args[0],$args[1]);
-    }
+    $stmt = $this->getDB()->prepare( "SELECT * FROM wp_posts 
+    INNER JOIN wp_postmeta as surfaceData ON surfaceData.post_id = wp_posts.ID AND surfaceData.meta_key = 'surface' 
+    INNER JOIN wp_postmeta as priceData ON priceData.post_id = wp_posts.ID AND priceData.meta_key = 'price'
+    INNER JOIN wp_postmeta as roomsData ON roomsData.post_id = wp_posts.ID AND roomsData.meta_key = 'bedrooms_count' 
+    INNER JOIN wp_postmeta as bathRoomsData ON bathRoomsData.post_id = wp_posts.ID AND bathRoomsData.meta_key = 'bathrooms_count'
+    INNER JOIN wp_postmeta as typeData ON typeData.post_id = wp_posts.ID AND typeData.meta_key = 'type'    
+    WHERE post_author = :hotelId AND post_type = 'room'" . ( ! empty( $whereClause ) ? ' AND ' . implode( ' AND ', $whereClause ) : '' ) . " ORDER BY priceData.meta_value ASC LIMIT 1" );
     $stmt->execute( [ 'hotelId' => $hotel->getId() ] );
     
     /**
