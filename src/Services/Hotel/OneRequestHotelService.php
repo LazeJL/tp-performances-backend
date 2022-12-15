@@ -155,6 +155,8 @@ class OneRequestHotelService extends AbstractHotelService {
         $sqlQuery .="
         ORDER BY `cheapestRoomId` ASC";
 
+        dump($sqlQuery);
+
         $stmt = $db->prepare($sqlQuery);
     
     if(empty($args["distance"])){
